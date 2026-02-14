@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.user
+    ports:
+      - "50051:50051"
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.order
+    ports:
+      - "8081:8081"
+    depends_on:
+      - user-service
+    environment:
+      - USER_GRPC_ADDR=user-service:50051
+      - ORDER_HTTP_PORT=8081

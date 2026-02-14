@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/abdillahfazri/grpc-simple/proto/user/v1;userpb";
+
+service UserService {
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message GetUserResponse {
+  string id = 1;
+  string name = 2;
+  string email = 3; 
+
+}
