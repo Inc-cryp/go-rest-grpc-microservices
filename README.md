@@ -144,24 +144,6 @@ This project can be scaled into production ready architecture:
 - Centralized config
 - CI/CD pipeline
 
----
-
-# 📂 Project Structure
-
-.
-├── user/
-│   ├── main.go
-│   └── proto/
-├── order/
-│   ├── main.go
-│   └── grpc_client.go
-├── Dockerfile.user
-├── Dockerfile.order
-├── docker-compose.yml
-├── .env
-
----
-
 #  Why This Project Matters
 
 - Microservice communication (REST → gRPC)
