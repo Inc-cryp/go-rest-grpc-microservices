@@ -23,6 +23,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer func() {
+		if err := userClient.Close(); err != nil {
+			log.Println("failed to close user gRPC client:", err)
+		}
+	}()
 
 	uc := orderUsecase.NewOrderUsecase(userClient)
 	handler := orderRest.NewHandler(uc)

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 
+	config "github.com/abdillahfazri/grpc-simple/internal/config"
 	"github.com/abdillahfazri/grpc-simple/internal/user/repository"
 	unaryLogger "github.com/abdillahfazri/grpc-simple/internal/user/transport/grpc"
 	usergrpc "github.com/abdillahfazri/grpc-simple/internal/user/transport/grpc"
@@ -14,7 +15,16 @@ import (
 )
 
 func main() {
-	lis, err := net.Listen("tcp", ":50051")
+	cfg := config.Load()
+
+	userGRPCPort := cfg.UserGrpcPort
+	if userGRPCPort == "" {
+		userGRPCPort = "50051"
+	}
+
+	listenAddr := ":" + userGRPCPort
+
+	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,6 +39,8 @@ func main() {
 
 	userpb.RegisterUserServiceServer(grpcServer, handler)
 
-	log.Println("gRPC server running on :50051")
-	grpcServer.Serve(lis)
+	log.Printf("gRPC server running on %s (env=%s)", listenAddr, cfg.AppEnv)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatal(err)
+	}
 }

@@ -11,6 +11,7 @@ import (
 )
 
 type UserClient struct {
+	conn   *grpc.ClientConn
 	client userpb.UserServiceClient
 }
 
@@ -24,8 +25,16 @@ func NewUserClient(addr string) (*UserClient, error) {
 	}
 
 	return &UserClient{
+		conn:   conn,
 		client: userpb.NewUserServiceClient(conn),
 	}, nil
+}
+
+func (c *UserClient) Close() error {
+	if c == nil || c.conn == nil {
+		return nil
+	}
+	return c.conn.Close()
 }
 
 func (c *UserClient) GetUser(ctx context.Context, id string) (*userpb.GetUserResponse, error) {
