@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
+	"os/signal"
+	"syscall"
+	"time"
 
 	config "github.com/abdillahfazri/grpc-simple/internal/config"
 	"github.com/abdillahfazri/grpc-simple/internal/user/repository"
@@ -40,7 +44,35 @@ func main() {
 	userpb.RegisterUserServiceServer(grpcServer, handler)
 
 	log.Printf("gRPC server running on %s (env=%s)", listenAddr, cfg.AppEnv)
-	if err := grpcServer.Serve(lis); err != nil {
+
+	serveErrCh := make(chan error, 1)
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			serveErrCh <- err
+		}
+	}()
+
+	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	select {
+	case <-signalCtx.Done():
+		log.Println("shutdown signal received")
+	case err := <-serveErrCh:
 		log.Fatal(err)
+	}
+
+	stopped := make(chan struct{})
+	go func() {
+		grpcServer.GracefulStop()
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+		log.Println("gRPC server stopped gracefully")
+	case <-time.After(10 * time.Second):
+		log.Println("gRPC graceful stop timeout, forcing stop")
+		grpcServer.Stop()
 	}
 }

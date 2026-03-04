@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
 	config "github.com/abdillahfazri/grpc-simple/internal/config"
 	orderClient "github.com/abdillahfazri/grpc-simple/internal/order/client"
@@ -34,7 +40,34 @@ func main() {
 
 	r.POST("/orders/:user_id", handler.CreateOrder)
 
+	orderServer := &http.Server{
+		Addr:    ":" + cfg.OrderHTTPPort,
+		Handler: r,
+	}
+	serverErrCh := make(chan error, 1)
+
 	log.Println("Order API running on :" + cfg.OrderHTTPPort)
-	r.Run(":" + cfg.OrderHTTPPort)
+	go func() {
+		if err := orderServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErrCh <- err
+		}
+	}()
+
+	signalCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	select {
+	case <-signalCtx.Done():
+		log.Println("shutdown signal received")
+	case err := <-serverErrCh:
+		log.Println("server error:", err)
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := orderServer.Shutdown(shutdownCtx); err != nil {
+		log.Println("order server shutdown error:", err)
+	}
 
 }
